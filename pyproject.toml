@@ -5,6 +5,10 @@ description = "Add your description here"
 requires-python = ">=3.11"
 dependencies = [
     "anicli-api>=0.8.5",
+    "email-validator>=2.3.0",
     "flask>=3.1.2",
     "flask-cors>=6.0.2",
+    "flask-sqlalchemy>=3.1.1",
+    "gunicorn>=23.0.0",
+    "psycopg2-binary>=2.9.11",
 ]
