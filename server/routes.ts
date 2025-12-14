@@ -1,6 +1,9 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import * as jikan from "./services/jikan";
+
+const VIDEO_PARSER_URL = process.env.VIDEO_PARSER_URL || 'http://localhost:5001';
 
 export async function registerRoutes(
   httpServer: Server,
@@ -115,6 +118,169 @@ export async function registerRoutes(
       return res.status(404).json({ error: "Episode not found" });
     }
     res.json(episode);
+  });
+
+  app.get("/api/jikan/search", async (req, res) => {
+    const { q, page = "1", limit = "25" } = req.query;
+    if (!q || typeof q !== "string") {
+      return res.status(400).json({ error: "Query parameter q is required" });
+    }
+    
+    const result = await jikan.searchAnime(q, parseInt(page as string), parseInt(limit as string));
+    if (!result) {
+      return res.status(500).json({ error: "Failed to fetch from Jikan API" });
+    }
+    
+    const mappedData = result.data.map(jikan.mapJikanToAnime);
+    res.json({
+      data: mappedData,
+      pagination: result.pagination
+    });
+  });
+
+  app.get("/api/jikan/anime/:malId", async (req, res) => {
+    const malId = parseInt(req.params.malId);
+    if (isNaN(malId)) {
+      return res.status(400).json({ error: "Invalid MAL ID" });
+    }
+    
+    const anime = await jikan.getAnimeById(malId);
+    if (!anime) {
+      return res.status(404).json({ error: "Anime not found" });
+    }
+    
+    res.json(jikan.mapJikanToAnime(anime));
+  });
+
+  app.get("/api/jikan/anime/:malId/episodes", async (req, res) => {
+    const malId = parseInt(req.params.malId);
+    const page = parseInt(req.query.page as string) || 1;
+    
+    if (isNaN(malId)) {
+      return res.status(400).json({ error: "Invalid MAL ID" });
+    }
+    
+    const result = await jikan.getAnimeEpisodes(malId, page);
+    if (!result) {
+      return res.status(500).json({ error: "Failed to fetch episodes" });
+    }
+    
+    const mappedEpisodes = result.data.map(ep => jikan.mapJikanEpisode(ep, malId.toString()));
+    res.json({
+      data: mappedEpisodes,
+      pagination: result.pagination
+    });
+  });
+
+  app.get("/api/jikan/top", async (req, res) => {
+    const { filter = "bypopularity", page = "1", limit = "25" } = req.query;
+    
+    const result = await jikan.getTopAnime(
+      filter as string, 
+      parseInt(page as string), 
+      parseInt(limit as string)
+    );
+    
+    if (!result) {
+      return res.status(500).json({ error: "Failed to fetch top anime" });
+    }
+    
+    const mappedData = result.data.map(jikan.mapJikanToAnime);
+    res.json({
+      data: mappedData,
+      pagination: result.pagination
+    });
+  });
+
+  app.get("/api/jikan/season/now", async (req, res) => {
+    const { page = "1", limit = "25" } = req.query;
+    
+    const result = await jikan.getSeasonNow(
+      parseInt(page as string), 
+      parseInt(limit as string)
+    );
+    
+    if (!result) {
+      return res.status(500).json({ error: "Failed to fetch current season" });
+    }
+    
+    const mappedData = result.data.map(jikan.mapJikanToAnime);
+    res.json({
+      data: mappedData,
+      pagination: result.pagination
+    });
+  });
+
+  app.get("/api/video/sources", async (_req, res) => {
+    try {
+      const response = await fetch(`${VIDEO_PARSER_URL}/sources`);
+      if (!response.ok) {
+        return res.json({ sources: [] });
+      }
+      const data = await response.json();
+      res.json(data);
+    } catch (error) {
+      res.json({ sources: [] });
+    }
+  });
+
+  app.get("/api/video/search", async (req, res) => {
+    const { q, source = "animego" } = req.query;
+    if (!q || typeof q !== "string") {
+      return res.status(400).json({ error: "Query parameter q is required" });
+    }
+    
+    try {
+      const response = await fetch(`${VIDEO_PARSER_URL}/search?q=${encodeURIComponent(q)}&source=${source}`);
+      if (!response.ok) {
+        const error = await response.json();
+        return res.status(response.status).json(error);
+      }
+      const data = await response.json();
+      res.json(data);
+    } catch (error) {
+      res.status(500).json({ error: "Video parser service unavailable" });
+    }
+  });
+
+  app.post("/api/video/episodes", async (req, res) => {
+    try {
+      const response = await fetch(`${VIDEO_PARSER_URL}/episodes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(req.body)
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        return res.status(response.status).json(error);
+      }
+      
+      const data = await response.json();
+      res.json(data);
+    } catch (error) {
+      res.status(500).json({ error: "Video parser service unavailable" });
+    }
+  });
+
+  app.post("/api/video/get", async (req, res) => {
+    try {
+      const response = await fetch(`${VIDEO_PARSER_URL}/video`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(req.body)
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        return res.status(response.status).json(error);
+      }
+      
+      const data = await response.json();
+      res.json(data);
+    } catch (error) {
+      res.status(500).json({ error: "Video parser service unavailable" });
+    }
   });
 
   return httpServer;
