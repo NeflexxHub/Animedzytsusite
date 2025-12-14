@@ -9,6 +9,7 @@ import Home from "@/pages/home";
 import Catalog from "@/pages/catalog";
 import AnimeDetail from "@/pages/anime-detail";
 import Watch from "@/pages/watch";
+import Auth from "@/pages/auth";
 
 function Router() {
   return (
@@ -17,6 +18,7 @@ function Router() {
       <Route path="/catalog" component={Catalog} />
       <Route path="/anime/:id" component={AnimeDetail} />
       <Route path="/watch/:animeId/:episodeId" component={Watch} />
+      <Route path="/auth" component={Auth} />
       <Route component={NotFound} />
     </Switch>
   );

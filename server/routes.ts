@@ -2,8 +2,13 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import * as jikan from "./services/jikan";
+import crypto from "crypto";
 
 const VIDEO_PARSER_URL = process.env.VIDEO_PARSER_URL || 'http://localhost:3001';
+
+function hashPassword(password: string): string {
+  return crypto.createHash('sha256').update(password).digest('hex');
+}
 
 export async function registerRoutes(
   httpServer: Server,
@@ -296,6 +301,52 @@ export async function registerRoutes(
       res.json(data);
     } catch (error) {
       res.status(500).json({ error: "Video parser service unavailable" });
+    }
+  });
+
+  app.post("/api/auth/register", async (req, res) => {
+    try {
+      const { username, password } = req.body;
+      
+      if (!username || !password) {
+        return res.status(400).json({ message: "Username and password are required" });
+      }
+      
+      const existingUser = await storage.getUserByUsername(username);
+      if (existingUser) {
+        return res.status(400).json({ message: "Username already exists" });
+      }
+      
+      const hashedPassword = hashPassword(password);
+      const user = await storage.createUser({ username, password: hashedPassword });
+      
+      res.status(201).json({ id: user.id, username: user.username });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to register user" });
+    }
+  });
+
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { username, password } = req.body;
+      
+      if (!username || !password) {
+        return res.status(400).json({ message: "Username and password are required" });
+      }
+      
+      const user = await storage.getUserByUsername(username);
+      if (!user) {
+        return res.status(401).json({ message: "Invalid username or password" });
+      }
+      
+      const hashedPassword = hashPassword(password);
+      if (user.password !== hashedPassword) {
+        return res.status(401).json({ message: "Invalid username or password" });
+      }
+      
+      res.json({ id: user.id, username: user.username });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to login" });
     }
   });
 
