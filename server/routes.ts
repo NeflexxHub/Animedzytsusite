@@ -103,6 +103,22 @@ export async function registerRoutes(
   });
 
   app.get("/api/anime/:id/episodes", async (req, res) => {
+    const malId = await storage.getMalIdByAnimeId(req.params.id);
+    
+    if (malId) {
+      try {
+        const page = parseInt(req.query.page as string) || 1;
+        const result = await jikan.getAnimeEpisodes(malId, page);
+        
+        if (result && result.data && result.data.length > 0) {
+          const mappedEpisodes = result.data.map(ep => jikan.mapJikanEpisode(ep, req.params.id));
+          return res.json(mappedEpisodes);
+        }
+      } catch (error) {
+        console.error('Error fetching episodes from Jikan:', error);
+      }
+    }
+    
     const episodes = await storage.getEpisodesByAnimeId(req.params.id);
     res.json(episodes);
   });

@@ -6,6 +6,8 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   getAnimeById(id: string): Promise<Anime | undefined>;
+  getAnimeWithMalId(id: string): Promise<{ anime: Anime; malId: number } | undefined>;
+  getMalIdByAnimeId(id: string): Promise<number | undefined>;
   getAllAnime(): Promise<Anime[]>;
   getEpisodesByAnimeId(animeId: string): Promise<Episode[]>;
   getEpisodeById(id: string): Promise<Episode | undefined>;
@@ -14,9 +16,14 @@ export interface IStorage {
   getAllGenres(): Promise<string[]>;
 }
 
-const sampleAnime: Anime[] = [
+interface AnimeWithMalId extends Anime {
+  malId: number;
+}
+
+const sampleAnime: AnimeWithMalId[] = [
   {
     id: "1",
+    malId: 16498,
     title: "Attack on Titan",
     titleOriginal: "Shingeki no Kyojin",
     description: "In a world where humanity lives inside cities surrounded by enormous walls due to the Titans, gigantic humanoid creatures who devour humans seemingly without reason, a young boy named Eren Yeager vows to cleanse the earth of the giant humanoid Titans that have brought humanity to the brink of extinction.",
@@ -25,7 +32,7 @@ const sampleAnime: Anime[] = [
     rating: 9.0,
     year: 2013,
     status: "completed",
-    episodeCount: 87,
+    episodeCount: 25,
     genres: ["Action", "Drama", "Fantasy", "Mystery"],
     studio: "Wit Studio / MAPPA",
     duration: "24 min",
@@ -33,6 +40,7 @@ const sampleAnime: Anime[] = [
   },
   {
     id: "2",
+    malId: 40748,
     title: "Jujutsu Kaisen",
     titleOriginal: "Jujutsu Kaisen",
     description: "A boy swallows a cursed talisman - the finger of a demon - and becomes cursed himself. He enters a shaman's school to be able to locate the demon's other body parts and thus exorcise himself.",
@@ -41,7 +49,7 @@ const sampleAnime: Anime[] = [
     rating: 8.7,
     year: 2020,
     status: "ongoing",
-    episodeCount: 47,
+    episodeCount: 24,
     genres: ["Action", "Fantasy", "School", "Supernatural"],
     studio: "MAPPA",
     duration: "24 min",
@@ -49,6 +57,7 @@ const sampleAnime: Anime[] = [
   },
   {
     id: "3",
+    malId: 38000,
     title: "Demon Slayer",
     titleOriginal: "Kimetsu no Yaiba",
     description: "A family is attacked by demons and only two members survive - Tanjiro and his sister Nezuko, who is turning into a demon slowly. Tanjiro sets out to become a demon slayer to avenge his family and cure his sister.",
@@ -57,7 +66,7 @@ const sampleAnime: Anime[] = [
     rating: 8.5,
     year: 2019,
     status: "ongoing",
-    episodeCount: 55,
+    episodeCount: 26,
     genres: ["Action", "Fantasy", "Historical", "Supernatural"],
     studio: "ufotable",
     duration: "24 min",
@@ -65,6 +74,7 @@ const sampleAnime: Anime[] = [
   },
   {
     id: "4",
+    malId: 31964,
     title: "My Hero Academia",
     titleOriginal: "Boku no Hero Academia",
     description: "In a world where people with superpowers known as 'Quirks' are the norm, Izuku Midoriya has dreams of one day becoming a Hero despite being bullied for not having a Quirk.",
@@ -73,7 +83,7 @@ const sampleAnime: Anime[] = [
     rating: 8.0,
     year: 2016,
     status: "ongoing",
-    episodeCount: 138,
+    episodeCount: 13,
     genres: ["Action", "Comedy", "School", "Superhero"],
     studio: "Bones",
     duration: "24 min",
@@ -81,6 +91,7 @@ const sampleAnime: Anime[] = [
   },
   {
     id: "5",
+    malId: 30276,
     title: "One Punch Man",
     titleOriginal: "One Punch Man",
     description: "The story of Saitama, a hero that does it just for fun and can defeat his enemies with a single punch.",
@@ -89,7 +100,7 @@ const sampleAnime: Anime[] = [
     rating: 8.5,
     year: 2015,
     status: "ongoing",
-    episodeCount: 24,
+    episodeCount: 12,
     genres: ["Action", "Comedy", "Parody", "Superhero"],
     studio: "Madhouse",
     duration: "24 min",
@@ -97,6 +108,7 @@ const sampleAnime: Anime[] = [
   },
   {
     id: "6",
+    malId: 50265,
     title: "Spy x Family",
     titleOriginal: "Spy x Family",
     description: "A spy on an undercover mission gets married and adopts a child as part of his cover. His wife and daughter have secrets of their own.",
@@ -105,7 +117,7 @@ const sampleAnime: Anime[] = [
     rating: 8.6,
     year: 2022,
     status: "ongoing",
-    episodeCount: 37,
+    episodeCount: 12,
     genres: ["Action", "Comedy", "Slice of Life", "Family"],
     studio: "Wit Studio / CloverWorks",
     duration: "24 min",
@@ -134,9 +146,13 @@ const generateEpisodes = (animeId: string, count: number): Episode[] => {
 
 const allEpisodes: Episode[] = sampleAnime.flatMap(anime => generateEpisodes(anime.id, anime.episodeCount));
 
+const animeIdToMalId = new Map<string, number>(
+  sampleAnime.map(a => [a.id, a.malId])
+);
+
 export class MemStorage implements IStorage {
   private users: Map<string, User>;
-  private animeMap: Map<string, Anime>;
+  private animeMap: Map<string, AnimeWithMalId>;
   private episodesMap: Map<string, Episode>;
 
   constructor() {
@@ -164,6 +180,17 @@ export class MemStorage implements IStorage {
 
   async getAnimeById(id: string): Promise<Anime | undefined> {
     return this.animeMap.get(id);
+  }
+
+  async getAnimeWithMalId(id: string): Promise<{ anime: Anime; malId: number } | undefined> {
+    const animeData = this.animeMap.get(id);
+    if (!animeData) return undefined;
+    return { anime: animeData, malId: animeData.malId };
+  }
+
+  async getMalIdByAnimeId(id: string): Promise<number | undefined> {
+    const animeData = this.animeMap.get(id);
+    return animeData?.malId;
   }
 
   async getAllAnime(): Promise<Anime[]> {
