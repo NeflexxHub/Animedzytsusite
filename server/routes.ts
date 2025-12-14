@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import * as jikan from "./services/jikan";
 
-const VIDEO_PARSER_URL = process.env.VIDEO_PARSER_URL || 'http://localhost:5001';
+const VIDEO_PARSER_URL = process.env.VIDEO_PARSER_URL || 'http://localhost:3001';
 
 export async function registerRoutes(
   httpServer: Server,

@@ -167,5 +167,5 @@ def get_video():
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    port = int(sys.argv[1]) if len(sys.argv) > 1 else 5001
+    port = int(sys.argv[1]) if len(sys.argv) > 1 else 3001
     app.run(host='0.0.0.0', port=port, debug=False)
