@@ -15,6 +15,9 @@ import {
   X,
   Loader2,
   AlertCircle,
+  Mic,
+  SkipBack,
+  SkipForward,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -75,6 +78,15 @@ export default function Watch() {
   const [videoError, setVideoError] = useState<string>("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [selectedAnimeIndex, setSelectedAnimeIndex] = useState<number>(0);
+  const [selectedVoice, setSelectedVoice] = useState<string>("anidub");
+  
+  const voiceOptions = [
+    { id: "anidub", name: "AniDub" },
+    { id: "anilibria", name: "AniLibria" },
+    { id: "jidaisei", name: "JidaiSei" },
+    { id: "animepik", name: "AnimePik" },
+    { id: "shiza", name: "Shiza Project" },
+  ];
 
   const { data: anime, isLoading: animeLoading } = useQuery<Anime>({
     queryKey: ["/api/anime", animeId],
@@ -373,20 +385,40 @@ export default function Watch() {
 
             <div
               className={cn(
-                "absolute inset-0 flex items-center justify-center transition-opacity duration-300",
+                "absolute inset-0 flex items-center justify-center gap-4 sm:gap-8 transition-opacity duration-300",
                 showControls || !isPlaying ? "opacity-100" : "opacity-0 pointer-events-none"
               )}
             >
               <button
+                onClick={() => {
+                  const video = videoRef.current;
+                  if (video) video.currentTime = Math.max(0, video.currentTime - 10);
+                }}
+                className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-black/40 flex items-center justify-center hover:bg-black/60 transition-colors"
+                data-testid="button-skip-back"
+              >
+                <SkipBack className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+              </button>
+              <button
                 onClick={handlePlayPause}
-                className="w-20 h-20 rounded-full bg-black/50 flex items-center justify-center hover:bg-black/70 transition-colors"
+                className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-black/50 flex items-center justify-center hover:bg-black/70 transition-colors"
                 data-testid="button-play-center"
               >
                 {isPlaying ? (
-                  <Pause className="w-10 h-10 text-white" />
+                  <Pause className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
                 ) : (
-                  <Play className="w-10 h-10 text-white ml-1" />
+                  <Play className="w-8 h-8 sm:w-10 sm:h-10 text-white ml-1" />
                 )}
+              </button>
+              <button
+                onClick={() => {
+                  const video = videoRef.current;
+                  if (video) video.currentTime = Math.min(duration, video.currentTime + 10);
+                }}
+                className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-black/40 flex items-center justify-center hover:bg-black/60 transition-colors"
+                data-testid="button-skip-forward"
+              >
+                <SkipForward className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
               </button>
             </div>
 
@@ -455,11 +487,24 @@ export default function Watch() {
                   </span>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 sm:gap-2">
+                  <Select value={selectedVoice} onValueChange={setSelectedVoice}>
+                    <SelectTrigger className="w-[90px] sm:w-[120px] h-8 bg-white/10 border-none text-white text-xs gap-1">
+                      <Mic className="w-3 h-3 hidden sm:block" />
+                      <SelectValue placeholder="Озвучка" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {voiceOptions.map((voice) => (
+                        <SelectItem key={voice.id} value={voice.id}>
+                          {voice.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   {availableSources.length > 0 && (
                     <Select value={selectedSource} onValueChange={setSelectedSource}>
-                      <SelectTrigger className="w-[120px] h-8 bg-white/10 border-none text-white text-xs">
-                        <SelectValue placeholder="Source" />
+                      <SelectTrigger className="w-[90px] sm:w-[120px] h-8 bg-white/10 border-none text-white text-xs">
+                        <SelectValue placeholder="Источник" />
                       </SelectTrigger>
                       <SelectContent>
                         {availableSources.map((source) => (
@@ -473,7 +518,7 @@ export default function Watch() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="text-white hover:bg-white/20"
+                    className="text-white hover:bg-white/20 hidden sm:flex"
                     data-testid="button-quality"
                   >
                     <Settings className="w-5 h-5" />
@@ -496,39 +541,43 @@ export default function Watch() {
             </div>
           </div>
 
-          <div className="bg-background p-4 md:p-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div>
+          <div className="bg-background p-3 sm:p-4 md:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+              <div className="min-w-0 flex-1">
                 <Link
                   href={`/anime/${animeId}`}
-                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  className="text-xs sm:text-sm text-muted-foreground hover:text-foreground transition-colors line-clamp-1"
                   data-testid="link-anime-title"
                 >
                   {anime.title}
                 </Link>
-                <h1 className="text-xl md:text-2xl font-bold text-foreground" data-testid="text-episode-title">
-                  Episode {currentEpisode.number}: {currentEpisode.title}
+                <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground line-clamp-2" data-testid="text-episode-title">
+                  Серия {currentEpisode.number}: {currentEpisode.title}
                 </h1>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-shrink-0">
                 <Button
                   variant="outline"
+                  size="sm"
                   onClick={() => prevEpisode && navigateToEpisode(prevEpisode)}
                   disabled={!prevEpisode}
+                  className="touch-target"
                   data-testid="button-prev-episode"
                 >
-                  <ChevronLeft className="w-4 h-4 mr-2" />
-                  Previous
+                  <ChevronLeft className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Назад</span>
                 </Button>
                 <Button
                   variant="outline"
+                  size="sm"
                   onClick={() => nextEpisode && navigateToEpisode(nextEpisode)}
                   disabled={!nextEpisode}
+                  className="touch-target"
                   data-testid="button-next-episode"
                 >
-                  Next
-                  <ChevronRight className="w-4 h-4 ml-2" />
+                  <span className="hidden sm:inline">Далее</span>
+                  <ChevronRight className="w-4 h-4 sm:ml-2" />
                 </Button>
               </div>
             </div>
@@ -552,7 +601,7 @@ export default function Watch() {
           )}
         >
           <div className="p-4 border-b border-border">
-            <h2 className="font-semibold text-foreground">Episodes</h2>
+            <h2 className="font-semibold text-foreground">Эпизоды</h2>
           </div>
           <ScrollArea className="h-[calc(100vh-57px)]">
             <div className="p-2 space-y-1">

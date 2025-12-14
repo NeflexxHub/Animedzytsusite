@@ -172,6 +172,64 @@
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer components {
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .tv-focus:focus {
+    @apply ring-4 ring-primary ring-offset-2 ring-offset-background;
+    outline: none;
+  }
+
+  .video-player-controls {
+    @apply safe-area-inset-bottom;
+  }
+}
+
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .safe-area-inset-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+@media (min-width: 1920px) {
+  html {
+    font-size: 18px;
+  }
+}
+
+@media (min-width: 2560px) {
+  html {
+    font-size: 20px;
+  }
+}
+
+@media (pointer: coarse) {
+  button, a, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  input, select, textarea {
+    font-size: 16px;
+  }
+}
+
+@media (hover: none) {
+  .hover-elevate:hover::after,
+  .hover-elevate-2:hover::after {
+    background-color: transparent;
   }
 }
 
