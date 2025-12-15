@@ -306,10 +306,10 @@ export async function registerRoutes(
 
   app.post("/api/auth/register", async (req, res) => {
     try {
-      const { username, password } = req.body;
+      const { username, email, password } = req.body;
       
-      if (!username || !password) {
-        return res.status(400).json({ message: "Username and password are required" });
+      if (!username || !email || !password) {
+        return res.status(400).json({ message: "Username, email and password are required" });
       }
       
       const existingUser = await storage.getUserByUsername(username);
@@ -317,10 +317,15 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Username already exists" });
       }
       
-      const hashedPassword = hashPassword(password);
-      const user = await storage.createUser({ username, password: hashedPassword });
+      const existingEmail = await storage.getUserByEmail(email);
+      if (existingEmail) {
+        return res.status(400).json({ message: "Email already exists" });
+      }
       
-      res.status(201).json({ id: user.id, username: user.username });
+      const hashedPassword = hashPassword(password);
+      const user = await storage.createUser({ username, email, password: hashedPassword });
+      
+      res.status(201).json({ id: user.id, username: user.username, email: user.email });
     } catch (error) {
       res.status(500).json({ message: "Failed to register user" });
     }
@@ -344,7 +349,7 @@ export async function registerRoutes(
         return res.status(401).json({ message: "Invalid username or password" });
       }
       
-      res.json({ id: user.id, username: user.username });
+      res.json({ id: user.id, username: user.username, email: user.email });
     } catch (error) {
       res.status(500).json({ message: "Failed to login" });
     }
