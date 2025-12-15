@@ -6,13 +6,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Auth() {
   const [, navigate] = useLocation();
+  const { login, register, isLoading } = useAuth();
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
 
   const [loginData, setLoginData] = useState({
     username: "",
@@ -28,37 +29,9 @@ export default function Auth() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-
-    try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(loginData),
-      });
-
-      if (response.ok) {
-        toast({
-          title: "Успешный вход",
-          description: "Добро пожаловать!",
-        });
-        navigate("/");
-      } else {
-        const error = await response.json();
-        toast({
-          title: "Ошибка входа",
-          description: error.message || "Неверный логин или пароль",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Ошибка",
-        description: "Произошла ошибка при входе",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
+    const success = await login(loginData.username, loginData.password);
+    if (success) {
+      navigate("/");
     }
   };
 
@@ -83,41 +56,9 @@ export default function Auth() {
       return;
     }
 
-    setIsLoading(true);
-
-    try {
-      const response = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: registerData.username,
-          email: registerData.email,
-          password: registerData.password,
-        }),
-      });
-
-      if (response.ok) {
-        toast({
-          title: "Регистрация успешна",
-          description: "Теперь вы можете войти в аккаунт",
-        });
-        setRegisterData({ username: "", email: "", password: "", confirmPassword: "" });
-      } else {
-        const error = await response.json();
-        toast({
-          title: "Ошибка регистрации",
-          description: error.message || "Не удалось создать аккаунт",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Ошибка",
-        description: "Произошла ошибка при регистрации",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
+    const success = await register(registerData.username, registerData.email, registerData.password);
+    if (success) {
+      navigate("/");
     }
   };
 
